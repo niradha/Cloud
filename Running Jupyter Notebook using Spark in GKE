@@ -1,0 +1,56 @@
+Running Jupyter Notebook using Spark in GKE
+
+#Reference Link  - https://github.com/SnappyDataInc/spark-on-k8s
+#steps-if-a-kubernetes-cluster-is-available
+
+1. Creating GKE Cluster
+- gcloud container clusters create --machine-type n1-standard-2 --num-nodes 2 --zone us-central1-b --cluster-version latest spark
+
+2. Install kubectl on your development machine and configure access to the kubernetes
+- gcloud components install kubectl
+
+3. You must have appropriate permissions to list, create, edit and delete pods in your cluster. 
+You can verify that you can list these resources by running
+- kubectl auth can-i list,create,edit,delete pods
+
+4. The service account credentials used by the driver pods must be allowed to create pods, services and configmaps. 
+For example, if you are using default service account, assign 'edit' role to it for namespace 'spark' by using following command
+- kubectl create clusterrolebinding spark-role --clusterrole=edit --serviceaccount=spark:default
+
+5. Launch Spark and Notebook servers
+- git clone https://github.com/SnappyDataInc/spark-on-k8s
+
+6. Install Tiller
+Step 1 - kubectl create serviceaccount tiller --namespace kube-system
+Step 2
+  tiller-clusterrolebinding.yaml
+  --------------------
+  kind: ClusterRoleBinding
+  apiVersion: rbac.authorization.k8s.io/v1beta1
+  metadata:
+    name: tiller-clusterrolebinding
+  subjects:
+  - kind: ServiceAccount
+    name: tiller
+    namespace: kube-system
+  roleRef:
+    kind: ClusterRole
+    name: cluster-admin
+    apiGroup: ""
+  ----------------
+Step 3 - kubectl create -f tiller-clusterrolebinding.yaml
+Step 4 - helm init --service-account tiller --upgrade
+
+7. Now, install the chart in a namespace called 'spark'
+- cd spark-on-k8s/charts
+- helm dep up spark-umbrella
+- helm install --name spark-all --namespace spark ./spark-umbrella/
+
+8. The command below can be used to access the notebook environment from any browser.
+- kubectl get services --namespace spark -w
+
+
+
+
+
+
